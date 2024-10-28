@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -311,8 +311,8 @@ if [ -z "${log_module:-}" ]; then
     error "log_module not set in caller (line/file): $(caller)"
     exit 1
 fi
-
-ROOT="$(abspath ${ROOT:-${mydir}/..})"
+DEFAULT_ROOT="$(builtin cd ${mydir}/..; pwd)"
+ROOT="$(abspath ${ROOT:-${DEFAULT_ROOT}})"
 BUILD_DIR="$(abspath "${BUILD_DIR:-${ROOT}/build}")"
 DEPS_DIR="${BUILD_DIR}/deps"
 
@@ -326,7 +326,7 @@ export CURL="${CURL:-$(which curl)}"
 export CURL_OPTIONS="${CURL_OPTIONS:--s -f -L}"
 
 export MAVEN_REPO_URL_BASE="${MAVEN_REPO_URL_BASE:-https://repo1.maven.org/maven2}"
-export CODE_TOOLS_URL_BASE="${CODE_TOOLS_URL_BASE:-https://git.openjdk.java.net}"
+export CODE_TOOLS_URL_BASE="${CODE_TOOLS_URL_BASE:-https://git.openjdk.org}"
 export ANT_ARCHIVE_URL_BASE="${ANT_ARCHIVE_URL_BASE:-https://archive.apache.org/dist/ant/binaries}"
 
 setup_shasum

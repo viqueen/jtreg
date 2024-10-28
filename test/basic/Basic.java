@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,14 @@ import com.sun.javatest.regtest.config.RegressionParameters;
 
 public class Basic
 {
+    private static final boolean IS_JAVA18_PLUS;
+
+    static {
+        String javaSpecVersion = System.getProperty("java.specification.version");
+        // use of Double.valueOf() allows for JDK 8, whose value is 1.8
+        IS_JAVA18_PLUS = Double.valueOf(javaSpecVersion).intValue() >= 18;
+    }
+
     public static void main(String[] args) {
         try {
             Basic basic = new Basic(args);
@@ -78,7 +86,7 @@ public class Basic
         System.out.println("jdk:       " + jdkPath);
         System.out.println("envVars:   " + envVars);
         System.out.println("mode:      " + modeOpt);
-        System.out.println("headless:  " + isHeadless);
+        System.out.println("headless:  " + isHeadless);  // note: used by ReportOnlyTest.gmk
         System.out.println("java.awt.headless: " + headlessProperty);
 
         try {
@@ -207,8 +215,8 @@ public class Basic
         numMain   += 2;
 
         // main
-        numPassed += 12; numFailed += 19; numError  += 12;
-        numMain   += 43;
+        numPassed += 13; numFailed += 19; numError  += 12;
+        numMain   += 44;
 
         // driver
         numPassed += 3; numFailed += 4; numError  += 10;
@@ -227,6 +235,16 @@ public class Basic
         numMain += 2;
         numShell += 1;
 
+        if (IS_JAVA18_PLUS) {
+            // on Java versions 18 and higher we don't run some SecurityManager related tests.
+            // we adjust the counts for those here.
+
+            // 2 less "Passed" expected in main/Exit.java and 1 less expected in driver/Exit.java
+            numPassed -= 3;
+            // 10 less "Failed" expected in main/Exit.java and 2 less expected in driver/Exit.java
+            numFailed -= 12;
+            numError += 0; // no change in error count
+        }
         actionTable.put("applet",  Integer.valueOf(numApplet));
         actionTable.put("build",   Integer.valueOf(numBuild));
         actionTable.put("clean",   Integer.valueOf(numClean));

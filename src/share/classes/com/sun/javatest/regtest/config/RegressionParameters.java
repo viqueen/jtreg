@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +65,7 @@ import com.sun.javatest.interview.BasicInterviewParameters;
 import com.sun.javatest.regtest.agent.JDK_Version;
 import com.sun.javatest.regtest.agent.SearchPath;
 import com.sun.javatest.regtest.exec.TimeoutHandlerProvider;
+import com.sun.javatest.regtest.report.Verbose;
 import com.sun.javatest.regtest.util.FileUtils;
 import com.sun.javatest.regtest.util.StringUtils;
 import com.sun.javatest.util.I18NResourceBundle;
@@ -72,7 +73,7 @@ import com.sun.javatest.util.I18NResourceBundle;
 import static com.sun.javatest.regtest.util.StringUtils.join;
 
 
-public class RegressionParameters
+public final class RegressionParameters
     extends BasicInterviewParameters
     implements Parameters.EnvParameters
 {
@@ -150,6 +151,14 @@ public class RegressionParameters
         mep.setExcludeFiles(FileUtils.toFiles(files));
     }
 
+    public File[] getExcludeLists() {
+        MutableExcludeListParameters mep =
+            (MutableExcludeListParameters) getExcludeListParameters();
+        return mep.getExcludeFiles() != null
+            ? mep.getExcludeFiles()
+            : new File[0];
+    }
+
     public void setPriorStatusValues(boolean[] b) {
         MutablePriorStatusParameters mpsp =
             (MutablePriorStatusParameters) getPriorStatusParameters();
@@ -220,18 +229,11 @@ public class RegressionParameters
             if (mlf != null)
                 filters.add(mlf);
 
-            final TestFilter f = new CompositeFilter(filters.toArray(new TestFilter[0]));
-            return new CachingTestFilter(f.getName(), f.getDescription(), f.getReason()) {
-                @Override
-                protected String getCacheKey(TestDescription td) {
-                    return td.getRootRelativeURL();
-                }
-
-                @Override
-                protected boolean getCacheableValue(TestDescription td) throws Fault {
-                    return f.accepts(td);
-                }
-            };
+            // Do not cache the results of the composite filter,
+            // to not affect the filter stats, which handle CompositeFilters specially.
+            // Cache the individual filters.
+            TestFilter f = new CompositeFilter(filters.toArray(new TestFilter[0]));
+            return f;
         }
         return relevantTestFilter;
 
@@ -319,7 +321,7 @@ public class RegressionParameters
             return null;
 
         return new CachingTestFilter(
-                "TestLimitFilter",
+                "TimeLimitFilter",
                 "Select tests that do not exceed a specified timeout value",
                 "Test declares a timeout which exceeds the requested time limit") {
 
@@ -485,7 +487,7 @@ public class RegressionParameters
                 matchListFilter = new CachingTestFilter(
                         "jtregMatchListFilter",
                         "Select tests which are in a match list",
-                        "Test has not been matched by a match list") {
+                        "Test is not in a match list") {
                     final TestListWithPlatforms list = new TestListWithPlatforms(el, getTestOS());
                     @Override
                     protected String getCacheKey(TestDescription td) {
@@ -632,6 +634,7 @@ public class RegressionParameters
     private static final String CUSTOM_TEST_THREAD_FACTORY = ".testThreadFactory";
     private static final String CUSTOM_TEST_THREAD_FACTORY_PATH = ".testThreadFactoryPath";
     private static final String TEST_QUERIES = ".testQueries";
+    private static final String TEST_VERBOSE = ".testVerbose";
 
     @Override
     public void load(Map<String, String> data, boolean checkChecksum) throws Interview.Fault {
@@ -734,6 +737,11 @@ public class RegressionParameters
                 setTestQueries(List.of(StringUtils.splitSeparator("\n", v)));
             }
 
+            v = data.get(prefix + TEST_VERBOSE);
+            if (v != null) {
+                setVerbose(Verbose.decode(v));
+            }
+
         } catch (InvalidPathException e) {
             // This is unlikely to happen, but pretty serious if it does.
             // Since we only put valid paths into the parameters, there should be
@@ -820,6 +828,10 @@ public class RegressionParameters
 
         if (testQueries != null) {
             data.put(prefix + TEST_QUERIES, join(testQueries, "\n"));
+        }
+
+        if (verbose != null) {
+            data.put(prefix + TEST_VERBOSE, verbose.toString());
         }
     }
 
@@ -1290,7 +1302,7 @@ public class RegressionParameters
         this.matchLists = List.of(files);
     }
 
-    List<Path> getMatchLists() {
+    public List<Path> getMatchLists() {
         return Collections.unmodifiableList(matchLists);
     }
 
@@ -1307,6 +1319,18 @@ public class RegressionParameters
     }
 
     private boolean useWindowsSubsystemForLinux;
+
+    //---------------------------------------------------------------------
+
+    public void setVerbose(Verbose verbose) {
+        this.verbose = verbose;
+    }
+
+    public Verbose getVerbose() {
+        return verbose;
+    }
+
+    private Verbose verbose;
 
     //---------------------------------------------------------------------
 

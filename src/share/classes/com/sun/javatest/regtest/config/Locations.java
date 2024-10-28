@@ -47,7 +47,7 @@ import com.sun.javatest.regtest.util.StringUtils;
 /**
  * Utilities to locate source and class files used by a test.
  */
-public class Locations {
+public final class Locations {
     /**
      * Used to report problems that are found.
      */
@@ -81,6 +81,14 @@ public class Locations {
             this.absSrcDir = absSrcDir;
             this.absClsDir = absClsDir;
             this.kind = kind;
+        }
+
+        public boolean isLibrary() {
+            return name != null;
+        }
+
+        public boolean isTest() {
+            return name == null;
         }
 
         @Override

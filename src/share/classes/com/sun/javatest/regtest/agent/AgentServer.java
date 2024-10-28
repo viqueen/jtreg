@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 
 
 @SuppressWarnings("removal") // Security Manager and related APIs
-public class AgentServer implements ActionHelper.OutputHandler {
+public final class AgentServer implements ActionHelper.OutputHandler {
 
     /**
      * Main program used to invoke and run the server in child JVMs
@@ -154,8 +154,9 @@ public class AgentServer implements ActionHelper.OutputHandler {
             traceOut.println("Agent.Server started");
         }
         boolean allowSetSecurityManagerFlag = false;
-        // use explicit localhost to avoid VPN issues
-        InetAddress host = InetAddress.getByName("localhost");
+        // by default use loopback address. if "-host" is specified, this will
+        // then be overridden by that value
+        InetAddress host = InetAddress.getLoopbackAddress();
         int id = 0;
         int port = -1;
         File logFile = null;
@@ -206,11 +207,12 @@ public class AgentServer implements ActionHelper.OutputHandler {
         log("Started");
 
         if (port > 0) {
+            log("Connecting to " + host + ":" + port);
             Socket s = new Socket(host, port);
             s.setSoTimeout((int)(KeepAlive.READ_TIMEOUT * timeoutFactor));
             in = new DataInputStream(new BufferedInputStream(s.getInputStream()));
             out = new DataOutputStream(new BufferedOutputStream(s.getOutputStream()));
-            log("Listening on port " + port);
+            log("Listening for commands at " + s.getLocalSocketAddress());
         } else {
             in = new DataInputStream(new BufferedInputStream(System.in));
             out = new DataOutputStream(new BufferedOutputStream(System.out));
